@@ -68,6 +68,14 @@ module GitIssue
       end
     end
 
+    def view(options = {})
+      ticket_id = options[:ticket_id]
+      raise 'ticket_id required.' unless ticket_id
+      base_uri = URI.parse(@url)
+      url = "#{base_uri.scheme}://#{base_uri.host}/#{@repo}/issues/#{ticket_id}"
+      system `git web--browse #{url}`
+    end
+
     private
 
     def to_url(*path_list)
