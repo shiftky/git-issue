@@ -20,7 +20,7 @@ module GitIssue
     def list(options = {})
       query_names = %i(state milestone labels)
       params = query_names.inject({}) { |hash, key| hash[key] = options[key] if options[key]; hash }
-      params[:state] ||= 'open'
+      params[:state] ||= 'opened'
 
       url = to_url("projects", @repo.gsub("/", "%2F"), "issues")
       issues = fetch_json(url, options, params)
@@ -73,7 +73,7 @@ module GitIssue
       http = connection(uri.host, uri.port)
       http.start { |http|
         path = uri.path
-        path += params.map { |name, value| "#{name}=#{value}" }.join("&") if params.present?
+        path += '?' + params.map { |name, value| "#{name}=#{value}" }.join("&") if params.present?
 
         request = case method
           when :post then Net::HTTP::Post.new(path)
