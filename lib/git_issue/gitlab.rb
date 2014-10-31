@@ -14,7 +14,7 @@ module GitIssue
       configure_error('user', "git config issue.user yuroyoro")  if @user.blank?
 
       @token = options[:token] || configured_value('issue.token')
-      configure_error('token', "git config issue.token XXXXXXXXXXXXXXXXXXXX")  if @token.blank?
+      configure_error('token', "git config issue.token MAwbtYEG6Pz5WJNB7jZb")  if @token.blank?
     end
 
     def show(options = {})
