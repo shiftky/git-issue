@@ -17,6 +17,26 @@ module GitIssue
       configure_error('token', "git config issue.token XXXXXXXXXXXXXXXXXXXX")  if @token.blank?
     end
 
+    def show(options = {})
+      ticket_id = options[:ticket_id]
+      raise 'ticket_id required.' unless ticket_id
+
+      url = to_url("projects", @repo.gsub("/", "%2F"), "issues")
+      issues = fetch_json(url)
+
+      issue_id = nil
+      issues.each { |issue| issue_id = issue['id'] if issue['iid'] == ticket_id }
+      raise "issue ##{ticket_id} not found." unless issue_id
+
+      url = to_url("projects", @repo.gsub("/", "%2F"), "issues", issue_id)
+      issue = fetch_json(url)
+
+      comments_url = to_url("projects", @repo.gsub("/", "%2F"), "issues", issue['id'], "notes")
+      comments = fetch_json(comments_url)
+
+      puts format_issue(issue, comments)
+    end
+
     def list(options = {})
       query_names = %i(state milestone labels)
       params = query_names.inject({}) { |hash, key| hash[key] = options[key] if options[key]; hash }
@@ -101,6 +121,77 @@ module GitIssue
         author: :magenta,
         labels: :yellow,
       }
+    end
+
+    def issue_title(issue)
+      "[#{apply_fmt_colors(:state, issue['state'])}] #{apply_fmt_colors(:id, "##{issue['number']}")} #{issue['title']}"
+    end
+
+    def issue_author(issue)
+      author     = issue['author']['username']
+      created_at = issue['created_at']
+
+      msg = "#{apply_fmt_colors(:login, author)} opened this issue #{Time.parse(created_at)}"
+      msg
+    end
+
+    def format_comments(comments)
+      cmts = []
+      comments.sort_by{|c| c['created_at']}.each_with_index do |c,n|
+        cmts += format_comment(c,n)
+      end
+      cmts
+    end
+
+    def format_comment(c, n)
+      cmts = []
+
+      cmts << "##{n + 1} - #{c['author']['username']} が#{time_ago_in_words(c['created_at'])}に更新"
+      cmts << "-" * 78
+      cmts +=  c['body'].split("\n").to_a if c['body']
+      cmts << ""
+    end
+
+    def format_issue(issue, comments)
+      msg = [""]
+
+      msg << issue_title(issue)
+      msg << "-" * 80
+      msg << issue_author(issue)
+      msg << ""
+
+      props = []
+      props << ['comments', comments.count]
+      props << ['milestone', issue['milestone']['title']] unless issue['milestone'].blank?
+
+      props.each_with_index do |p,n|
+        row = sprintf("%s : %s", mljust(p.first, 18), mljust(p.last.to_s, 24))
+        if n % 2 == 0
+          msg << row
+        else
+          msg[-1] = "#{msg.last} #{row}"
+        end
+      end
+
+      uri = URI.parse(@url)
+      msg << sprintf("%s : %s", mljust('labels', 18), apply_fmt_colors(:labels, issue['labels'].join(", ")))
+      msg << sprintf("%s : %s", mljust('html_url', 18), "#{uri.scheme}://#{uri.host}/#{@repo}/issues/#{issue['iid']}")
+      msg << sprintf("%s : %s", mljust('updated_at', 18), Time.parse(issue['updated_at']))
+
+      # display description
+      msg << "-" * 80
+      msg << "#{issue['description']}"
+      msg << ""
+
+      # display comments
+      if comments && !comments.empty?
+        msg << "-" * 80
+        msg << ""
+        cmts = format_comments(comments)
+        msg += cmts.map{|s| "  #{s}"}
+      end
+
+      msg.join("\n")
     end
   end
 end
