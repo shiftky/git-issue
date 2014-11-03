@@ -37,6 +37,14 @@ module GitIssue
       puts format_issue(issue, comments)
     end
 
+    def view(options = {})
+      ticket_id = options[:ticket_id]
+      raise 'ticket_id required.' unless ticket_id
+      base_uri = URI.parse(@url)
+      url = "#{base_uri.scheme}://#{base_uri.host}/#{@repo}/issues/#{ticket_id}"
+      system `git web--browse #{url}`
+    end
+
     def list(options = {})
       query_names = %i(state milestone labels)
       params = query_names.inject({}) { |hash, key| hash[key] = options[key] if options[key]; hash }
@@ -52,6 +60,11 @@ module GitIssue
       username_max = issues.map { |issue| mlength(issue['author']['username']) }.max
 
       issues.each do |issue|
+        if options[:assignee].present?
+          next if issue["assignee"].nil?
+          next unless issue["assignee"]["username"] == options[:assignee]
+        end
+
         comments_url = to_url("projects", @repo.gsub("/", "%2F"), "issues", issue['id'], "notes")
         comments = fetch_json(comments_url)
 
@@ -68,12 +81,8 @@ module GitIssue
       end
     end
 
-    def view(options = {})
-      ticket_id = options[:ticket_id]
-      raise 'ticket_id required.' unless ticket_id
-      base_uri = URI.parse(@url)
-      url = "#{base_uri.scheme}://#{base_uri.host}/#{@repo}/issues/#{ticket_id}"
-      system `git web--browse #{url}`
+    def mine(options = {})
+      list(options.merge(assignee: @user))
     end
 
     private
