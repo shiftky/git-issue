@@ -21,19 +21,9 @@ module GitIssue
       ticket_id = options[:ticket_id]
       raise 'ticket_id required.' unless ticket_id
 
-      url = to_url("projects", @repo.gsub("/", "%2F"), "issues")
-      issues = fetch_json(url)
-
-      issue_id = nil
-      issues.each { |issue| issue_id = issue['id'] if issue['iid'] == ticket_id }
-      raise "issue ##{ticket_id} not found." unless issue_id
-
-      url = to_url("projects", @repo.gsub("/", "%2F"), "issues", issue_id)
-      issue = fetch_json(url)
-
+      issue = fetch_issue(ticket_id)
       comments_url = to_url("projects", @repo.gsub("/", "%2F"), "issues", issue['id'], "notes")
       comments = fetch_json(comments_url)
-
       puts format_issue(issue, comments)
     end
 
@@ -52,7 +42,6 @@ module GitIssue
 
       url = to_url("projects", @repo.gsub("/", "%2F"), "issues")
       issues = fetch_json(url, options, params)
-
       issues = issues.sort_by { |issue| issue['iid'] }
 
       title_max = issues.map { |issue| mlength(issue['title']) }.max
@@ -100,8 +89,29 @@ module GitIssue
       end
 
       url = to_url("projects", @repo.gsub("/", "%2F"), 'issues')
-      issue = post_json(url, options, params)
-      puts "created issue #{oneline_issue(issue)}"
+      issue = fetch_json(url, options, params, :post)
+      puts "created issue #{issue_title(issue)}"
+    end
+
+    def update(options = {})
+      ticket_id = options[:ticket_id]
+      raise 'ticket_id required.' unless ticket_id
+
+      issue = fetch_issue(ticket_id)
+
+      params = {}
+      names = %i(title description)
+      if options.slice(*names).empty?
+        message = "#{issue['title']}\n\n#{issue['description']}"
+        params[:title], params[:description] = get_title_and_body_from_editor(message)
+      else
+        params[:title] = options[:title] if options[:title].present?
+        params[:description] = options[:description] if options[:description].present?
+      end
+
+      url = to_url("projects", @repo.gsub("/", "%2F"), "issues", issue['id'])
+      issue = fetch_json(url, options, params, :put)
+      puts "updated issue #{issue_title(issue)}"
     end
 
     private
@@ -110,15 +120,8 @@ module GitIssue
       @url + "/#{path_list.join("/")}"
     end
 
-    def post_json(url, options = {}, params = {})
-      response = send_request(url, {}, options, params, :post)
-      json = JSON.parse(response.body)
-      raise error_message(json) unless response_success?(response)
-      json
-    end
-
-    def fetch_json(url, options = {}, params = {})
-      response = send_request(url, {}, options, params, :get)
+    def fetch_json(url, options = {}, params = {}, method = :get)
+      response = send_request(url, {}, options, params, method)
       json = JSON.parse(response.body)
       raise error_message(json) unless response_success?(response)
       json
@@ -154,6 +157,15 @@ module GitIssue
       }
     end
 
+    def fetch_issue(issue_iid)
+      url = to_url("projects", @repo.gsub("/", "%2F"), "issues")
+      issues = fetch_json(url)
+      issues.each do |issue|
+        return issue if issue['iid'] == issue_iid
+      end
+      raise "issue ##{issue_iid} not found."
+    end
+
     def apply_fmt_colors(key, str)
       fmt_colors[key.to_sym] ? apply_colors(str, *Array(fmt_colors[key.to_sym])) : str
     end
@@ -166,12 +178,8 @@ module GitIssue
       }
     end
 
-    def oneline_issue(issue, options = {})
-      issue_title(issue)
-    end
-
     def issue_title(issue)
-      "[#{apply_fmt_colors(:state, issue['state'])}] #{apply_fmt_colors(:id, "##{issue['number']}")} #{issue['title']}"
+      "[#{apply_fmt_colors(:state, issue['state'])}] #{apply_fmt_colors(:id, "##{issue['iid']}")} #{issue['title']}"
     end
 
     def issue_author(issue)
@@ -237,6 +245,12 @@ module GitIssue
       end
 
       msg.join("\n")
+    end
+
+    def opt_parser
+      opts = super
+      opts.on("--title=VALUE", "Title of issue. Use the given value to create/update issue.") { |v| @options[:title] = v }
+      opts.on("--description=VALUE", "Description of issue. Use the given value to create/update issue.") { |v| @options [:description] = v }
     end
   end
 end
