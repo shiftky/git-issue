@@ -85,10 +85,36 @@ module GitIssue
       list(options.merge(assignee: @user))
     end
 
+    def add(options = {})
+      message = <<-MSG
+### Write title here ###
+
+### descriptions here ###
+      MSG
+
+      params = {}
+      if options[:title]
+        params[:title] = options[:title]
+      else
+        params[:title], params[:description] = get_title_and_body_from_editor(message)
+      end
+
+      url = to_url("projects", @repo.gsub("/", "%2F"), 'issues')
+      issue = post_json(url, options, params)
+      puts "created issue #{oneline_issue(issue)}"
+    end
+
     private
 
     def to_url(*path_list)
       @url + "/#{path_list.join("/")}"
+    end
+
+    def post_json(url, options = {}, params = {})
+      response = send_request(url, {}, options, params, :post)
+      json = JSON.parse(response.body)
+      raise error_message(json) unless response_success?(response)
+      json
     end
 
     def fetch_json(url, options = {}, params = {})
@@ -140,6 +166,10 @@ module GitIssue
       }
     end
 
+    def oneline_issue(issue, options = {})
+      issue_title(issue)
+    end
+
     def issue_title(issue)
       "[#{apply_fmt_colors(:state, issue['state'])}] #{apply_fmt_colors(:id, "##{issue['number']}")} #{issue['title']}"
     end
@@ -147,9 +177,7 @@ module GitIssue
     def issue_author(issue)
       author     = issue['author']['username']
       created_at = issue['created_at']
-
-      msg = "#{apply_fmt_colors(:login, author)} opened this issue #{Time.parse(created_at)}"
-      msg
+      "#{apply_fmt_colors(:login, author)} opened this issue #{Time.parse(created_at)}"
     end
 
     def format_comments(comments)
