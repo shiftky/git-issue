@@ -17,6 +17,14 @@ module GitIssue
       configure_error('token', "git config issue.token MAwbtYEG6Pz5WJNB7jZb")  if @token.blank?
     end
 
+    def commands
+      cmds = super
+      unused_cmds = %i(cherry publish rebase)
+      cmds.delete_if { |cmd| unused_cmds.include?(cmd.name) }
+      cmds << GitIssue::Command.new(:mention, :men, 'create a comment to given issue.')
+      cmds << GitIssue::Command.new(:close , :cl, 'close an issue with comment. comment is optional.')
+    end
+
     def show(options = {})
       ticket_id = options[:ticket_id]
       raise 'ticket_id required.' unless ticket_id
