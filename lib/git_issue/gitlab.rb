@@ -215,7 +215,7 @@ module GitIssue
       url = to_url("projects", @repo.gsub("/", "%2F"), "issues")
       issues = fetch_json(url)
       issues.each do |issue|
-        return issue if issue['iid'] == issue_iid
+        return issue if issue['iid'] == issue_iid.to_i
       end
       raise "issue ##{issue_iid} not found."
     end
