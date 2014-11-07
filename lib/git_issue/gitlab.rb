@@ -119,6 +119,26 @@ module GitIssue
       puts "updated issue #{issue_title(issue)}"
     end
 
+    def branch(options = {})
+      ticket = options[:ticket_id]
+      raise 'ticket_id is required.' unless ticket
+
+      branch_name = ticket_branch(ticket)
+
+      if options[:force]
+        system "git branch -D #{branch_name}" if options[:force]
+        system "git checkout -b #{branch_name}"
+      else
+        if %x(git branch -l | grep "#{branch_name}").strip.empty?
+          system "git checkout -b #{branch_name}"
+        else
+          system "git checkout #{branch_name}"
+        end
+      end
+
+      show(options)
+    end
+
     def mention(options = {})
       ticket_id = options[:ticket_id]
       raise 'ticket_id required.' unless ticket_id
