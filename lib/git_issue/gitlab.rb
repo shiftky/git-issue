@@ -122,6 +122,21 @@ module GitIssue
       puts "updated issue #{issue_title(issue)}"
     end
 
+    def mention(options = {})
+      ticket_id = options[:ticket_id]
+      raise 'ticket_id required.' unless ticket_id
+
+      body = options[:body] || get_body_from_editor('### comment here ###')
+      raise 'comment body is required.' if body.empty?
+
+      issue = fetch_issue(ticket_id)
+      post_data = { body: body }
+      url = to_url("projects", @repo.gsub("/", "%2F"), "issues", issue['id'], 'notes')
+      comment = fetch_json(url, options, post_data, :post)
+
+      puts "commented issue #{issue_title(issue)}"
+    end
+
     private
 
     def to_url(*path_list)
@@ -259,6 +274,7 @@ module GitIssue
       opts = super
       opts.on("--title=VALUE", "Title of issue. Use the given value to create/update issue.") { |v| @options[:title] = v }
       opts.on("--description=VALUE", "Description of issue. Use the given value to create/update issue.") { |v| @options [:description] = v }
+      opts.on("--body=VALUE", "Content of issue comment. Use the given value to mention to issue.") { |v| @options [:body] = v }
     end
   end
 end
