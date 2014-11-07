@@ -62,16 +62,12 @@ module GitIssue
           next unless issue["assignee"]["username"] == options[:assignee]
         end
 
-        comments_url = to_url("projects", @repo.gsub("/", "%2F"), "issues", issue['id'], "notes")
-        comments = fetch_json(comments_url)
-
-        puts sprintf('%s %s %s %s %s c:%s %s %s',
+        puts sprintf('%s %s %s %s %s %s %s',
                       apply_fmt_colors(:id, sprintf('#%-4d', issue['iid'])),
                       apply_fmt_colors(:state, issue['state']),
                       mljust(issue['title'], title_max),
                       apply_fmt_colors(:labels, mljust(issue['labels'].join(","), label_max)),
                       apply_fmt_colors(:author, mljust(issue['author']['username'], username_max)),
-                      comments.count,
                       to_date(issue['created_at']),
                       to_date(issue['updated_at'])
         )
