@@ -112,6 +112,7 @@ module GitIssue
         params[:title] = options[:title] if options[:title].present?
         params[:description] = options[:description] if options[:description].present?
       end
+      params[:state_event] = options[:state_event] if options[:state_event].present?
 
       url = to_url("projects", @repo.gsub("/", "%2F"), "issues", issue['id'])
       issue = fetch_json(url, options, params, :put)
@@ -122,15 +123,29 @@ module GitIssue
       ticket_id = options[:ticket_id]
       raise 'ticket_id required.' unless ticket_id
 
-      body = options[:body] || get_body_from_editor('### comment here ###')
+      message = '### comment here ###'
+      body = options[:body] || get_body_from_editor(message)
       raise 'comment body is required.' if body.empty?
+      raise "Aborting cause messages didn't modified." if body == message
 
-      issue = fetch_issue(ticket_id)
       post_data = { body: body }
+      issue = fetch_issue(ticket_id)
       url = to_url("projects", @repo.gsub("/", "%2F"), "issues", issue['id'], 'notes')
       comment = fetch_json(url, options, post_data, :post)
-
       puts "commented issue #{issue_title(issue)}"
+    end
+
+    def close(options = {})
+      ticket_id = options[:ticket_id]
+      raise 'ticket_id required.' unless ticket_id
+
+      mention(options)
+
+      params = { state_event: 'close' }
+      issue = fetch_issue(ticket_id)
+      url = to_url("projects", @repo.gsub("/", "%2F"), "issues", issue['id'])
+      issue = fetch_json(url, options, params, :put)
+      puts "closed issue #{issue_title(issue)}"
     end
 
     private
