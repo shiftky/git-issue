@@ -69,15 +69,15 @@ describe GitIssue::Gitlab do
       }
 
       before do
-        gitlab.stub(:fetch_issue).and_return(issue)
-        gitlab.stub(:fetch_json).and_return(comments)
+        allow(gitlab).to receive(:fetch_issue).and_return(issue)
+        allow(gitlab).to receive(:fetch_json).and_return(comments)
         gitlab.show(ticket_id: 1234)
       end
 
       subject { gitlab.sysout.rewind; gitlab.sysout.read }
 
-      it { sysout.length.should_not be_zero }
-      it { syserr.length.should be_zero }
+      it { expect(sysout.length).not_to be_zero }
+      it { expect(syserr.length).to be_zero }
       it { is_expected.to include "\n[\e[34mopened\e[0m] \e[1m\e[36m#1234\e[0m Test-issue\n" }
       it { is_expected.to include "john_smith opened this issue 2014-11-05 15:56:36 +0900" }
     end
@@ -94,7 +94,7 @@ describe GitIssue::Gitlab do
 
     context 'given ticket_id' do
       before do
-        gitlab.stub (:system)
+        allow(gitlab).to receive(:system)
         gitlab.view(ticket_id: 1234)
       end
 
@@ -137,12 +137,12 @@ describe GitIssue::Gitlab do
       let (:list_options) { {} }
       before do
         return_issues = issues.delete_if { |issue| issue['state'] == 'closed' }
-        gitlab.stub(:fetch_json).and_return(return_issues)
+        allow(gitlab).to receive(:fetch_json).and_return(return_issues)
         gitlab.list
       end
 
-      it { sysout.length.should_not be_zero }
-      it { syserr.length.should be_zero }
+      it { expect(sysout.length).not_to be_zero }
+      it { expect(syserr.length).to be_zero }
       it { is_expected.to include "\e[1m\e[36m#1234\e[0m \e[34mopened\e[0m Opened-issue1 \e[33m\e[0m \e[35mjohn_smith\e[0m 2014/11/05 2014/11/07" }
       it { is_expected.to include "\e[1m\e[36m#1236\e[0m \e[34mopened\e[0m Opened-issue2 \e[33m\e[0m \e[35mpipin     \e[0m 2014/11/06 2014/11/08" }
     end
@@ -151,12 +151,12 @@ describe GitIssue::Gitlab do
       context 'assignee is john_smith' do
         before do
           return_issues = issues.delete_if { |issue| issue['state'] == 'closed' }
-          gitlab.stub(:fetch_json).and_return(return_issues)
+          allow(gitlab).to receive(:fetch_json).and_return(return_issues)
           gitlab.list(assignee: 'john_smith')
         end
 
-        it { sysout.length.should_not be_zero }
-        it { syserr.length.should be_zero }
+        it { expect(sysout.length).not_to be_zero }
+        it { expect(syserr.length).to be_zero }
         it { is_expected.to include "\e[1m\e[36m#1234\e[0m \e[34mopened\e[0m Opened-issue1 \e[33m\e[0m \e[35mjohn_smith\e[0m 2014/11/05 2014/11/07" }
         it { is_expected.not_to include "\e[1m\e[36m#1235\e[0m \e[34mclosed\e[0m Closed-issue1 \e[33m\e[0m \e[35mjohn_smith\e[0m 2014/10/06 2014/10/08" }
         it { is_expected.not_to include "\e[1m\e[36m#1236\e[0m \e[34mopened\e[0m Opened-issue2 \e[33m\e[0m \e[35mpipin     \e[0m 2014/11/06 2014/11/08" }
@@ -167,12 +167,12 @@ describe GitIssue::Gitlab do
       context 'opened' do
         before do
           return_issues = issues.delete_if { |issue| issue['state'] == 'closed' }
-          gitlab.stub(:fetch_json).and_return(return_issues)
+          allow(gitlab).to receive(:fetch_json).and_return(return_issues)
           gitlab.list(state: 'opened')
         end
 
-        it { sysout.length.should_not be_zero }
-        it { syserr.length.should be_zero }
+        it { expect(sysout.length).not_to be_zero }
+        it { expect(syserr.length).to be_zero }
         it { is_expected.to include "\e[1m\e[36m#1234\e[0m \e[34mopened\e[0m Opened-issue1 \e[33m\e[0m \e[35mjohn_smith\e[0m 2014/11/05 2014/11/07" }
         it { is_expected.to include "\e[1m\e[36m#1236\e[0m \e[34mopened\e[0m Opened-issue2 \e[33m\e[0m \e[35mpipin     \e[0m 2014/11/06 2014/11/08" }
         it { is_expected.not_to include "\e[1m\e[36m#1235\e[0m \e[34mclosed\e[0m Closed-issue1 \e[33m\e[0m \e[35mjohn_smith\e[0m 2014/10/06 2014/10/08" }
@@ -181,12 +181,12 @@ describe GitIssue::Gitlab do
       context 'closed' do
         before do
           return_issues = issues.delete_if { |issue| issue['state'] == 'opened' }
-          gitlab.stub(:fetch_json).and_return(return_issues)
+          allow(gitlab).to receive(:fetch_json).and_return(return_issues)
           gitlab.list(state: 'closed')
         end
 
-        it { sysout.length.should_not be_zero }
-        it { syserr.length.should be_zero }
+        it { expect(sysout.length).not_to be_zero }
+        it { expect(syserr.length).to be_zero }
         it { is_expected.to include "\e[1m\e[36m#1235\e[0m \e[34mclosed\e[0m Closed-issue1 \e[33m\e[0m \e[35mjohn_smith\e[0m 2014/10/06 2014/10/08" }
         it { is_expected.not_to include "\e[1m\e[36m#1234\e[0m \e[34mopened\e[0m Opened-issue1 \e[33m\e[0m \e[35mjohn_smith\e[0m 2014/11/05 2014/11/07" }
         it { is_expected.not_to include "\e[1m\e[36m#1236\e[0m \e[34mopened\e[0m Opened-issue2 \e[33m\e[0m \e[35mpipin     \e[0m 2014/11/06 2014/11/08" }
