@@ -41,7 +41,7 @@ module GitIssue
 
       base_uri = URI.parse(@url)
       url = "#{base_uri.scheme}://#{base_uri.host}/#{@repo}/issues/#{ticket_id}"
-      system `git web--browse #{url}`
+      system "git web--browse #{url}"
     end
 
     def list(options = {})
