@@ -3,8 +3,11 @@ module GitIssue
     def initialize(args, options = {})
       super(args, options)
 
-      url = `git config remote.origin.url`.strip
-      @repo = url.match(/([^\/]+\/[^\/]+)\.git/)[1]
+      @repo = options[:repo] || configured_value('issue.repo')
+      if @repo.blank?
+        url = `git config remote.origin.url`.strip
+        @repo = url.match(/([^\/]+\/[^\/]+)\.git/)[1]
+      end
 
       @url = options[:url] || configured_value('issue.url')
       configure_error('url', "git config issue.url http://gitlab.example.com/api/v3") if @url.blank?
