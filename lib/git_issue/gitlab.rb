@@ -62,8 +62,8 @@ module GitIssue
 
       issues.each do |issue|
         if options[:assignee].present?
-          next if issue["assignee"].nil?
-          next unless issue["assignee"]["username"] == options[:assignee]
+          next if issue['assignee'].nil?
+          next unless issue['assignee']['username'] == options[:assignee]
         end
 
         puts sprintf('%s %s %s %s %s %s %s',
@@ -307,6 +307,8 @@ module GitIssue
 
     def opt_parser
       opts = super
+      opts.on("--assignee=VALUE", "Use the given value to create/update issue. or query of listing issues. (String User login)") { |v| @options[:assignee] = v }
+      opts.on("--state=VALUE", "Use the given value to create/update issue. or query of listing issues. Where 'state' is either 'opened' or 'closed'.") { |v| @options[:state] = v }
       opts.on("--title=VALUE", "Title of issue. Use the given value to create/update issue.") { |v| @options[:title] = v }
       opts.on("--description=VALUE", "Description of issue. Use the given value to create/update issue.") { |v| @options[:description] = v }
       opts.on("--body=VALUE", "Content of issue comment. Use the given value to mention to issue.") { |v| @options[:body] = v }
