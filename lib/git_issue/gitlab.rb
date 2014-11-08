@@ -7,14 +7,14 @@ module GitIssue
       @repo = url.match(/([^\/]+\/[^\/]+)\.git/)[1]
 
       @url = options[:url] || configured_value('issue.url')
-      configure_error('url', "git config issue.url http://gitlab.example.com/api/v3")  if @url.blank?
+      configure_error('url', "git config issue.url http://gitlab.example.com/api/v3") if @url.blank?
 
       @user = options[:user] || configured_value('issue.user')
       @user = global_configured_value('github.user') if @user.blank?
-      configure_error('user', "git config issue.user yuroyoro")  if @user.blank?
+      configure_error('user', "git config issue.user yuroyoro") if @user.blank?
 
       @token = options[:token] || configured_value('issue.token')
-      configure_error('token', "git config issue.token MAwbtYEG6Pz5WJNB7jZb")  if @token.blank?
+      configure_error('token', "git config issue.token MAwbtYEG6Pz5WJNB7jZb") if @token.blank?
     end
 
     def commands
@@ -38,6 +38,7 @@ module GitIssue
     def view(options = {})
       ticket_id = options[:ticket_id]
       raise 'ticket_id required.' unless ticket_id
+
       base_uri = URI.parse(@url)
       url = "#{base_uri.scheme}://#{base_uri.host}/#{@repo}/issues/#{ticket_id}"
       system `git web--browse #{url}`
@@ -199,7 +200,7 @@ module GitIssue
           when :post then Net::HTTP::Post.new(path)
           when :put then Net::HTTP::Put.new(path)
           when :get then Net::HTTP::Get.new(path)
-          else "unknown method #{method}"
+          else raise "unknown method #{method}"
         end
 
         request['PRIVATE-TOKEN'] = @token
@@ -244,8 +245,8 @@ module GitIssue
 
     def format_comments(comments)
       cmts = []
-      comments.sort_by{|c| c['created_at']}.each_with_index do |c,n|
-        cmts += format_comment(c,n)
+      comments.sort_by { |comment| comment['created_at'] }.each_with_index do |c, n|
+        cmts += format_comment(c, n)
       end
       cmts
     end
@@ -304,8 +305,8 @@ module GitIssue
     def opt_parser
       opts = super
       opts.on("--title=VALUE", "Title of issue. Use the given value to create/update issue.") { |v| @options[:title] = v }
-      opts.on("--description=VALUE", "Description of issue. Use the given value to create/update issue.") { |v| @options [:description] = v }
-      opts.on("--body=VALUE", "Content of issue comment. Use the given value to mention to issue.") { |v| @options [:body] = v }
+      opts.on("--description=VALUE", "Description of issue. Use the given value to create/update issue.") { |v| @options[:description] = v }
+      opts.on("--body=VALUE", "Content of issue comment. Use the given value to mention to issue.") { |v| @options[:body] = v }
     end
   end
 end
