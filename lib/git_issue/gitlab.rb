@@ -224,23 +224,22 @@ module GitIssue
         http.cert_store = store
       end
 
+      path = uri.path
+      path += '?' + params.map { |name, value| "#{URI.encode(name.to_s)}=#{URI.encode(value.to_s)}" }.join("&") if params.present?
+
+      request = case method
+        when :post then Net::HTTP::Post.new(path)
+        when :put then Net::HTTP::Put.new(path)
+        when :get then Net::HTTP::Get.new(path)
+        else raise "unknown method #{method}"
+      end
+
+      request['PRIVATE-TOKEN'] = @token
+      request.set_content_type "application/json"
+      request.body = json.to_json if json.present?
+
       http.start { |h|
-        path = uri.path
-        path += '?' + params.map { |name, value| "#{name}=#{value}" }.join("&") if params.present?
-
-        request = case method
-          when :post then Net::HTTP::Post.new(path)
-          when :put then Net::HTTP::Put.new(path)
-          when :get then Net::HTTP::Get.new(path)
-          else raise "unknown method #{method}"
-        end
-
-        request['PRIVATE-TOKEN'] = @token
-        request.set_content_type "application/json"
-        request.body = json.to_json if json.present?
-
-        response = h.request(request)
-        response
+        return h.request(request)
       }
     end
 
