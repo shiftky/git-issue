@@ -9,7 +9,7 @@ module GitIssue
         if url.empty?
           raise "please set remote.origin.url.\n\n\tgit remote add origin git@gitlab.example.com:username/repo_name.git\n\n"
         end
-        @repo = url.match(/([^\/]+\/[^\/]+)\.git/)[1]
+        @repo = url.match(/([^\/:]+\/[^\/]+)\.git/)[1]
       end
 
       @url = options[:url] || configured_value('issue.url')
@@ -21,6 +21,14 @@ module GitIssue
 
       @token = options[:token] || configured_value('issue.token')
       configure_error('token', "git config issue.token MAwbtYEG6Pz5WJNB7jZb") if @token.blank?
+
+      @ssl_options = {}
+      if @options.key?(:sslNoVerify) && RUBY_VERSION < "1.9.0" || configured_value('http.sslVerify') == "false"
+        @ssl_options[:ssl_verify_mode] = OpenSSL::SSL::VERIFY_NONE
+      end
+      if (ssl_cert = configured_value('http.sslCert'))
+        @ssl_options[:ssl_ca_cert] = ssl_cert
+      end
     end
 
     def commands
@@ -198,7 +206,25 @@ module GitIssue
       uri = URI.parse(url)
 
       http = connection(uri.host, uri.port)
-      http.start { |http|
+      if uri.scheme == "https"
+        http.use_ssl = true
+        http.verify_mode = @ssl_options[:ssl_verify_mode] || OpenSSL::SSL::VERIFY_NONE
+
+        store = OpenSSL::X509::Store.new
+        if @ssl_options[:ssl_ca_cert].present?
+          if File.directory? @ssl_options[:ssl_ca_cert]
+            store.add_path @ssl_options[:ssl_ca_cert]
+          else
+            store.add_file @ssl_options[:ssl_ca_cert]
+          end
+          http.cert_store = store
+        else
+          store.set_default_paths
+        end
+        http.cert_store = store
+      end
+
+      http.start { |h|
         path = uri.path
         path += '?' + params.map { |name, value| "#{name}=#{value}" }.join("&") if params.present?
 
@@ -213,7 +239,7 @@ module GitIssue
         request.set_content_type "application/json"
         request.body = json.to_json if json.present?
 
-        response = http.request(request)
+        response = h.request(request)
         response
       }
     end
