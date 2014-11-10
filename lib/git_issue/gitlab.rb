@@ -6,6 +6,9 @@ module GitIssue
       @repo = options[:repo] || configured_value('issue.repo')
       if @repo.blank?
         url = `git config remote.origin.url`.strip
+        if url.empty?
+          raise "please set remote.origin.url.\n\n\tgit remote add origin git@gitlab.example.com:username/repo_name.git\n\n"
+        end
         @repo = url.match(/([^\/]+\/[^\/]+)\.git/)[1]
       end
 
